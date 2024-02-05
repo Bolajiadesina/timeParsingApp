@@ -1,8 +1,7 @@
 package com.technicalTest.timeParsingApp.implementation;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -65,12 +64,23 @@ public class TimeParser {
             return dateFormat.format(now.getTime());
 
         } else if (baseDateValue != null) {
-            LocalDateTime baseDate = LocalDateTime.parse(baseDateValue, DateTimeFormatter.ISO_DATE_TIME);
 
-            // Pattern pattern2 = Pattern.compile("([+-]?\\d+)([smhd])|([+-]?\\d+y)");
+            Calendar now2 = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
             Pattern pattern2 = Pattern.compile("([-+])(\\d+)([smhdkyn])");
 
             Matcher matcher2 = pattern2.matcher(input);
+            if (baseDateValue != null) {
+                String datePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+                SimpleDateFormat dateFormat2 = new SimpleDateFormat(datePattern);
+
+                try {
+                    now2.setTime(dateFormat2.parse(baseDateValue));
+                } catch (ParseException e) {
+
+                    e.printStackTrace();
+                }
+            }
 
             while (matcher2.find()) {
 
@@ -81,31 +91,35 @@ public class TimeParser {
                 switch (unit) {
 
                     case 'n':
-                        now.getTime();
+                        now2.getTime();
 
                         break;
                     case 's':
-                        now.add(Calendar.SECOND, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.SECOND, (sign == '-' ? -1 : 1) * value);
                         break;
                     case 'm':
-                        now.add(Calendar.MINUTE, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.MINUTE, (sign == '-' ? -1 : 1) * value);
                         break;
                     case 'h':
-                        now.add(Calendar.HOUR_OF_DAY, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.HOUR_OF_DAY, (sign == '-' ? -1 : 1) * value);
                         break;
                     case 'd':
-                        now.add(Calendar.DAY_OF_MONTH, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.DAY_OF_MONTH, (sign == '-' ? -1 : 1) * value);
                         break;
                     case 'k':
-                        now.add(Calendar.MONTH, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.MONTH, (sign == '-' ? -1 : 1) * value);
                         break;
                     case 'y':
-                        now.add(Calendar.YEAR, (sign == '-' ? -1 : 1) * value);
+                        now2.add(Calendar.YEAR, (sign == '-' ? -1 : 1) * value);
                         break;
                 }
             }
+            // Format the modified time in the desired format
+            SimpleDateFormat dm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            dm.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-            return baseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            return dm.format(now2.getTime());
+
         }
 
         // Return null if no match is found
