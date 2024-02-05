@@ -2,19 +2,40 @@ package com.technicalTest.timeParsingApp.implementation;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.logging.Logger;
 
 public class TimeParser {
+    Logger logger = Logger.getLogger(getClass().getName());
+
     public static String parseRelativeTime(String input, String baseDateValue) {
         // Get the current time
         Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        String datePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat dateFormat = new SimpleDateFormat(datePattern);
 
-        if (input.equals("now()")) {
-            return now.getTime().toString();
+        if (input == "now()") {
+            return dateFormat.format(now.getTime());
         }
+        if (input.contains("@d")) {
+
+            LocalDateTime localDateTime = LocalDateTime.now();
+
+            LocalDateTime startOfDay = localDateTime.with(LocalTime.MIN).withSecond(0);
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+            return startOfDay.format(formatter);
+
+        }
+
+       
 
         // Regular expression to match relative time expressions
         Pattern pattern = Pattern.compile("([-+])(\\d+)([smhdkyn])");
@@ -57,8 +78,7 @@ public class TimeParser {
                     now.add(Calendar.YEAR, (sign == '-' ? -1 : 1) * value);
                     break;
             }
-            // Format the modified time in the desired format
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 
             return dateFormat.format(now.getTime());
@@ -70,16 +90,12 @@ public class TimeParser {
             Pattern pattern2 = Pattern.compile("([-+])(\\d+)([smhdkyn])");
 
             Matcher matcher2 = pattern2.matcher(input);
-            if (baseDateValue != null) {
-                String datePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-                SimpleDateFormat dateFormat2 = new SimpleDateFormat(datePattern);
 
-                try {
-                    now2.setTime(dateFormat2.parse(baseDateValue));
-                } catch (ParseException e) {
+            try {
+                now2.setTime(dateFormat.parse(baseDateValue));
+            } catch (ParseException e) {
 
-                    e.printStackTrace();
-                }
+                e.printStackTrace();
             }
 
             while (matcher2.find()) {
@@ -112,21 +128,22 @@ public class TimeParser {
                     case 'y':
                         now2.add(Calendar.YEAR, (sign == '-' ? -1 : 1) * value);
                         break;
+                    default:
+                        throw new IllegalArgumentException("Unsupported unit");
                 }
             }
-            // Format the modified time in the desired format
-            SimpleDateFormat dm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            dm.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-            return dm.format(now2.getTime());
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+            return dateFormat.format(now2.getTime());
 
         }
 
-        // Return null if no match is found
-        return null;
+        // Return no match is found
+        return "No match found";
     }
 
-    public static String[] parseTimeExpression(String input) {
+    public static String [] parseTimeExpression(String input) {
         // Regular expression to match time expression components
         Pattern pattern = Pattern.compile("([+-]?\\d+)([smhd])");
 
@@ -138,21 +155,30 @@ public class TimeParser {
 
         // Find all matches
         while (matcher.find()) {
-            String value = matcher.group(1) != null ? matcher.group(1) : matcher.group(3);
-            String unit = matcher.group(2);
+        String value = matcher.group(1) != null ? matcher.group(1) :
+        matcher.group(3);
+        String unit = matcher.group(2);
 
-            // Include the sign along with the value
-            result.append(matcher.group()).append(",");
+        // Include the sign along with the value
+        result.append(matcher.group()).append(",");
 
         }
 
         // Convert the result to a String array
-        String[] components = result.toString().split(",");
+        return result.toString().split(",");
 
-        return components;
+    }
+
+    public String[] parseTimeExpressionold(String input) {
+        String regex = "(?=[-+@])";
+
+        return input.split(regex);
+
     }
 
     public String executeParser(String textString) {
+
+        //String checkString= textString.substring(5);
 
         String[] analysedInput = parseTimeExpression(textString);
         int count = analysedInput.length;
@@ -161,7 +187,7 @@ public class TimeParser {
         String modifiedDate = null;
 
         if (count < 2) {
-            return parseRelativeTime(analysedInput[0], "");
+            return parseRelativeTime(textString, null);
         } else {
 
             for (String targetDateTime : analysedInput) {
@@ -176,10 +202,6 @@ public class TimeParser {
 
     }
 
-    public static void main(String[] args) {
-        TimeParser tm = new TimeParser();
-
-        System.out.println(tm.executeParser("now()+10d+12h"));
-    }
+   
 
 }
