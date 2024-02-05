@@ -9,15 +9,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TimeParser {
-    public static String parseRelativeTime(String input) {
+    public static String parseRelativeTime(String input, String baseDateValue) {
         // Get the current time
         Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-        if(input.equals("now()"))
-        {
-                return now.getTime().toString();
+        if (input.equals("now()")) {
+            return now.getTime().toString();
         }
-
 
         // Regular expression to match relative time expressions
         Pattern pattern = Pattern.compile("([-+])(\\d+)([smhdkyn])");
@@ -26,12 +24,10 @@ public class TimeParser {
         Matcher matcher = pattern.matcher(input);
 
         // If there is a match, extract components
-        if (matcher.find()) {
+        if (matcher.find() && baseDateValue == null) {
             char sign = matcher.group(1).charAt(0);
             int value = Integer.parseInt(matcher.group(2));
             char unit = matcher.group(3).charAt(0);
-
-            
 
             if (input.contains("mon")) {
                 unit = 'k';
@@ -68,13 +64,53 @@ public class TimeParser {
 
             return dateFormat.format(now.getTime());
 
+        } else if (baseDateValue != null) {
+            LocalDateTime baseDate = LocalDateTime.parse(baseDateValue, DateTimeFormatter.ISO_DATE_TIME);
+
+            // Pattern pattern2 = Pattern.compile("([+-]?\\d+)([smhd])|([+-]?\\d+y)");
+            Pattern pattern2 = Pattern.compile("([-+])(\\d+)([smhdkyn])");
+
+            Matcher matcher2 = pattern2.matcher(input);
+
+            while (matcher2.find()) {
+
+                char sign = matcher.group(1).charAt(0);
+                int value = Integer.parseInt(matcher.group(2));
+                char unit = matcher.group(3).charAt(0);
+
+                switch (unit) {
+
+                    case 'n':
+                        now.getTime();
+
+                        break;
+                    case 's':
+                        now.add(Calendar.SECOND, (sign == '-' ? -1 : 1) * value);
+                        break;
+                    case 'm':
+                        now.add(Calendar.MINUTE, (sign == '-' ? -1 : 1) * value);
+                        break;
+                    case 'h':
+                        now.add(Calendar.HOUR_OF_DAY, (sign == '-' ? -1 : 1) * value);
+                        break;
+                    case 'd':
+                        now.add(Calendar.DAY_OF_MONTH, (sign == '-' ? -1 : 1) * value);
+                        break;
+                    case 'k':
+                        now.add(Calendar.MONTH, (sign == '-' ? -1 : 1) * value);
+                        break;
+                    case 'y':
+                        now.add(Calendar.YEAR, (sign == '-' ? -1 : 1) * value);
+                        break;
+                }
+            }
+
+            return baseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
         }
 
         // Return null if no match is found
         return null;
     }
-
-  
 
     public static String[] parseTimeExpression(String input) {
         // Regular expression to match time expression components
@@ -88,19 +124,16 @@ public class TimeParser {
 
         // Find all matches
         while (matcher.find()) {
-            int value = Integer.parseInt(matcher.group(1));
+            String value = matcher.group(1) != null ? matcher.group(1) : matcher.group(3);
             String unit = matcher.group(2);
 
-            // Append the matched components to the result
-            result.append(value).append(unit).append(",");
+            // Include the sign along with the value
+            result.append(matcher.group()).append(",");
+
         }
 
         // Convert the result to a String array
         String[] components = result.toString().split(",");
-
-        for (String component : components) {
-            System.out.println(component);
-        }
 
         return components;
     }
@@ -110,16 +143,20 @@ public class TimeParser {
         String[] analysedInput = parseTimeExpression(textString);
         int count = analysedInput.length;
 
-        if (count < 2) {
-            return parseRelativeTime(analysedInput[0]);
-        } else {
-            String newDate = "";
-            for (String targetDateTime : analysedInput) {
-                newDate = parseRelativeTime(targetDateTime);
+        String newDate = null;
+        String modifiedDate = null;
 
+        if (count < 2) {
+            return parseRelativeTime(analysedInput[0], "");
+        } else {
+
+            for (String targetDateTime : analysedInput) {
+
+                newDate = parseRelativeTime(targetDateTime, newDate);
+                modifiedDate = newDate;
             }
 
-            return newDate;
+            return modifiedDate;
 
         }
 
@@ -128,7 +165,7 @@ public class TimeParser {
     public static void main(String[] args) {
         TimeParser tm = new TimeParser();
 
-        System.out.println(tm.parseTimeExpression("now()+10d+12h"));
+        System.out.println(tm.executeParser("now()+10d+12h"));
     }
 
 }
