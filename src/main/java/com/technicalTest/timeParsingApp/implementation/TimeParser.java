@@ -35,7 +35,7 @@ public class TimeParser {
 
         }
 
-       
+          //now()-1s
 
         // Regular expression to match relative time expressions
         Pattern pattern = Pattern.compile("([-+])(\\d+)([smhdkyn])");
@@ -52,6 +52,8 @@ public class TimeParser {
             if (input.contains("mon")) {
                 unit = 'k';
             }
+
+         
 
             // Modify time based on the relative components
             switch (unit) {
@@ -200,7 +202,39 @@ public class TimeParser {
 
         }
 
+
     }
+
+    public String  checkCovidTime(String covidSymbol){
+         /*
+         * ☣
+        */
+          /*
+             * {"+10d","12h"}
+            */
+
+            String  covidTime= null;
+            String temporaryCovidTime= null;
+
+            if(covidSymbol.equals("☣")){
+                temporaryCovidTime= "+10d+12h";
+            }
+
+            String []  newCovidArray = parseTimeExpressionold(temporaryCovidTime);
+                String dateGeneratedOld= null;
+
+            for (String stringValue : newCovidArray) {
+               dateGeneratedOld = parseRelativeTime(stringValue, null);
+               covidTime= dateGeneratedOld;
+            }
+
+                return  covidTime;
+    }
+
+        public static void main(String[] args) {
+            TimeParser  timeParser= new TimeParser();
+            System.out.println(timeParser.checkCovidTime("☣"));
+        }
 
    
 
